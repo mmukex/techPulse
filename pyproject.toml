@@ -1,7 +1,7 @@
 [project]
 name = "techpulse"
 version = "1.0.0"
-description = "Intelligenter RSS Tech-News-Aggregator mit Keyword-Filterung und Scoring-System"
+description = "RSS Tech-News-Aggregator mit Keyword-Filterung und Scoring-System"
 requires-python = ">=3.11.2"
 dependencies = [
     "feedparser>=6.0.10",

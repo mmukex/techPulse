@@ -196,23 +196,3 @@ Logs werden in `logs/aggregator.log` geschrieben:
 2024-01-15 14:30:53 - techpulse - INFO - Feed Heise Developer: 25 Artikel gefunden
 ...
 ```
-
-## Tests
-
-Das Projekt enthält Unit-Tests für die Kernmodule (Filter, Scorer, Config-Loader):
-
-```bash
-# Alle Tests ausführen
-python -m pytest tests/ -v
-
-# Oder mit unittest
-python -m unittest discover tests/ -v
-```
-
-## Lizenz
-
-Dieses Projekt wurde zu Lernzwecken erstellt.
-
-## Autor
-
-mmukex
