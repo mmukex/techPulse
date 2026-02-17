@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<!-- TechPulse Report Template (Jinja2) - generiert mit KI -->
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechPulse Report - {{ generated_at|format_date }}</title>
+
+    <!-- CSS direkt eingebettet, damit der Report standalone funktioniert -->
+    <style>
+        /* --- Reset & Basis --- */
+
+        /* Konsistentes Box-Sizing */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        /* Basis-Schrift und Hintergrund */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                         "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* --- Layout --- */
+
+        /* Max 1200px fuer gute Lesbarkeit */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* --- Header --- */
+
+        /* Gradient-Header */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            margin: 0 0 10px 0;
+            font-size: 2em;
+        }
+
+        header .subtitle {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        /* --- Statistik-Karten --- */
+
+        /* Grid passt sich der Bildschirmbreite an */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        /* Einzelne Statistik-Kachel */
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-card .label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        /* --- Artikel-Karten --- */
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        /* Artikel-Card mit Hover-Effekt */
+        .article-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .article-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Titel links, Score-Badge rechts */
+        .article-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .article-title {
+            font-size: 1.2em;
+            margin: 0;
+            flex: 1;
+        }
+
+        .article-title a {
+            color: #333;
+            text-decoration: none;
+        }
+
+        .article-title a:hover {
+            color: #667eea;
+        }
+
+        /* Score-Badge, Farbe kommt ueber score_level-Klasse */
+        .score-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-left: 15px;
+            white-space: nowrap;
+        }
+
+        /* Low/Medium/High Farbcodierung */
+        .score-low {
+            background-color: #ffeeba;
+            color: #856404;
+        }
+
+        .score-medium {
+            background-color: #b8daff;
+            color: #004085;
+        }
+
+        .score-high {
+            background-color: #c3e6cb;
+            color: #155724;
+        }
+
+        /* Metadaten-Zeile unter dem Titel */
+        .article-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .article-meta span {
+            display: flex;
+            align-items: center;
+        }
+
+        /* Beschreibung/Teaser */
+        .article-description {
+            color: #555;
+            margin: 10px 0 0 0;
+            line-height: 1.5;
+        }
+
+        /* Kategorie-/Interest-Tags */
+        .tag {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-right: 5px;
+        }
+
+        .tag-category {
+            background-color: #e9ecef;
+            color: #495057;
+        }
+
+        .tag-interest {
+            background-color: #e7f1ff;
+            color: #0056b3;
+        }
+
+        /* --- Interest-Sektionen --- */
+
+        .interest-section {
+            margin-bottom: 40px;
+        }
+
+        /* Header mit Name und Artikel-Zaehler */
+        .interest-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .interest-header h3 {
+            margin: 0;
+            color: #333;
+        }
+
+        .interest-count {
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        /* --- Footer --- */
+
+        footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: #666;
+            font-size: 0.9em;
+            border-top: 1px solid #ddd;
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        /* --- Responsive (Tablet und kleiner) --- */
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            header h1 {
+                font-size: 1.5em;
+            }
+
+            /* Auf kleinen Screens untereinander statt nebeneinander */
+            .article-header {
+                flex-direction: column;
+            }
+
+            .score-badge {
+                margin-left: 0;
+                margin-top: 10px;
+            }
+
+            .article-meta {
+                flex-direction: column;
+                gap: 5px;
+            }
+        }
+
+        /* Anzeige wenn keine Artikel gefunden */
+        .no-articles {
+            text-align: center;
+            padding: 40px 20px;
+            background: white;
+            border-radius: 8px;
+            color: #666;
+        }
+
+        .no-articles h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>TechPulse Report</h1>
+            <p class="subtitle">
+                Generiert am {{ generated_at|format_date }}
+            </p>
+        </header>
+
+        <!-- Statistik-Uebersicht -->
+        <div class="stats-grid">
+            <!-- Artikelanzahl -->
+            <div class="stat-card">
+                <div class="value">{{ statistics.total_articles }}</div>
+                <div class="label">Relevante Artikel</div>
+            </div>
+
+            <!-- Avg Score -->
+            <div class="stat-card">
+                <div class="value">{{ statistics.avg_score|format_score }}</div>
+                <div class="label">Durchschnittlicher Score</div>
+            </div>
+
+            <!-- Max Score -->
+            <div class="stat-card">
+                <div class="value">{{ statistics.max_score|format_score }}</div>
+                <div class="label">Höchster Score</div>
+            </div>
+
+            <!-- Kategorien -->
+            <div class="stat-card">
+                <div class="value">{{ statistics.categories_count }}</div>
+                <div class="label">Feed-Kategorien</div>
+            </div>
+        </div>
+
+        <!-- Artikel nach Interesse gruppiert -->
+        {% if articles %}
+            {% for interest_name, interest_articles in interests.items() %}
+            <div class="interest-section">
+                <div class="interest-header">
+                    <h3>{{ interest_name }}</h3>
+                    <span class="interest-count">{{ interest_articles|length }} Artikel</span>
+                </div>
+
+                {% for article in interest_articles %}
+                <article class="article-card">
+                    <!-- Titel + Score -->
+                    <div class="article-header">
+                        <h4 class="article-title">
+                            <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer">
+                                {{ article.title }}
+                            </a>
+                        </h4>
+                        <!-- score_level bestimmt die CSS-Klasse -->
+                        <span class="score-badge score-{{ article.score_level }}">
+                            Score: {{ article.score|format_score }}
+                        </span>
+                    </div>
+
+                    <!-- Quelle, Datum, Kategorie -->
+                    <div class="article-meta">
+                        <span>
+                            <strong>Quelle:</strong>&nbsp;{{ article.feed_name }}
+                        </span>
+                        <span>
+                            <strong>Datum:</strong>&nbsp;{{ article.published|format_date }}
+                        </span>
+                        <span class="tag tag-category">{{ article.category }}</span>
+                    </div>
+
+                    <!-- Beschreibung, max 300 Zeichen -->
+                    {% if article.description %}
+                    <p class="article-description">
+                        {{ article.description[:300] }}{% if article.description|length > 300 %}...{% endif %}
+                    </p>
+                    {% endif %}
+                </article>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <!-- Keine Treffer -->
+            <div class="no-articles">
+                <h3>Keine relevanten Artikel gefunden</h3>
+                <p>
+                    Es wurden keine Artikel gefunden, die den konfigurierten
+                    Interessen entsprechen. Überprüfen Sie die Keywords in der
+                    Konfiguration oder passen Sie den Mindest-Score an.
+                </p>
+            </div>
+        {% endif %}
+
+        <!-- Footer -->
+        <footer>
+            <p>
+                <strong>TechPulse RSS Aggregator</strong><br>
+                Report erstellt mit {{ config.feeds_count }} Feeds und
+                {{ config.interests_count }} Interessengebieten<br>
+                Mindest-Score: {{ config.min_score }}
+            </p>
+        </footer>
+    </div>
+</body>
+</html>

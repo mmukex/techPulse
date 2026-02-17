@@ -1,0 +1,124 @@
+# TechPulse - Konfigurationsdatei
+# Autor: mmukex
+
+# --- RSS-Feeds ---
+# Jeder Feed braucht name, url, category. priority ist optional (default 1.0).
+feeds:
+  - name: "Heise Developer"
+    url: "https://www.heise.de/developer/rss/news-atom.xml"
+    category: "Tech News DE"
+    priority: 1.2
+
+  - name: "Heise Security"
+    url: "https://www.heise.de/security/rss/news-atom.xml"
+    category: "Security"
+    priority: 1.3
+
+  - name: "Spring Blog"
+    url: "https://spring.io/blog.atom"
+    category: "Java/Spring"
+    priority: 1.5  # Primaere Quelle fuer Spring-Themen
+
+  - name: "InfoQ"
+    url: "https://feed.infoq.com/"
+    category: "Software Engineering"
+    priority: 1.4
+
+  - name: "The Pragmatic Engineer"
+    url: "https://feeds.feedburner.com/ThePragmaticEngineer"
+    category: "Software Engineering"
+    priority: 1.3
+
+# --- Interessen: Keywords + Gewichtung fuer Filterung/Scoring ---
+# weight steuert wie stark ein Interesse im Score zaehlt
+interests:
+  - name: "Künstliche Intelligenz"
+    keywords:
+      - "AI"
+      - "KI"
+      - "Machine Learning"
+      - "Deep Learning"
+      - "Neural Network"
+      - "GPT"
+      - "LLM"
+      - "Artificial Intelligence"
+      - "ChatGPT"
+      - "Transformer"
+    weight: 2.0  # Hoechste Gewichtung
+
+  - name: "Cloud & DevOps"
+    keywords:
+      - "Kubernetes"
+      - "Docker"
+      - "AWS"
+      - "Azure"
+      - "Cloud"
+      - "DevOps"
+      - "CI/CD"
+      - "Terraform"
+      - "GitOps"
+      - "Microservices"
+    weight: 1.5
+
+  - name: "Security"
+    keywords:
+      - "Security"
+      - "Sicherheit"
+      - "Vulnerability"
+      - "CVE"
+      - "Hack"
+      - "Breach"
+      - "Zero-Day"
+      - "Ransomware"
+      - "Encryption"
+      - "Authentication"
+    weight: 1.8  # Sicherheitsthemen sind oft zeitkritisch
+
+  - name: "Java & Spring"
+    keywords:
+      - "Java"
+      - "Spring"
+      - "Spring Boot"
+      - "JVM"
+      - "Kotlin"
+      - "Maven"
+      - "Gradle"
+      - "JDK"
+      - "Jakarta EE"
+    weight: 1.5
+
+  - name: "Web Development"
+    keywords:
+      - "JavaScript"
+      - "TypeScript"
+      - "React"
+      - "Vue"
+      - "Angular"
+      - "Node.js"
+      - "Frontend"
+      - "WebAssembly"
+      - "CSS"
+      - "HTML5"
+    weight: 1.0
+
+# --- Output ---
+output:
+  directory: "output"
+  filename_prefix: "techpulse_report"
+  max_articles: 50       # 0 = unbegrenzt
+  min_score: 0.5         # Artikel unter diesem Score fliegen raus
+
+# --- Logging ---
+# Level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+logging:
+  level: "INFO"
+  directory: "logs"
+  filename: "aggregator.log"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  console: true
+
+# --- Fetching ---
+fetching:
+  timeout: 10            # Sekunden pro Feed
+  max_workers: 5         # Parallele Threads
+  user_agent: "TechPulse RSS Aggregator/1.0"
