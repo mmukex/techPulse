@@ -1,0 +1,61 @@
+% =============================================================================
+% Kapitel 5: Fazit & Ausblick
+% =============================================================================
+
+\section{Fazit}
+
+\subsection{Zusammenfassung}
+
+TechPulse ist im Sinne seiner geplanten Implementierung vollständig. Der
+Aggregator übernimmt den gesamten Ablauf von der Nachrichtenbeschaffung bis
+zum fertigen HTML-Report.
+
+Das Projekt besteht aus sieben Modulen, die jeweils eine Aufgabe haben. Über
+die YAML-Konfiguration können neue Feeds und Interessen ohne Code-Änderungen
+hinzugefügt werden.
+
+\subsection{Erreichte Ziele}
+
+\begin{itemize}
+    \item \textbf{Multi-Feed-Aggregation:} Paralleler Abruf mehrerer RSS/Atom-Feeds
+          mit Fehlertoleranz pro Feed.
+    \item \textbf{Keyword-Filterung:} Word-Boundary-Matching per Regex, keine
+          Falsch-Positiven bei Teilwörtern.
+    \item \textbf{Relevanz-Scoring:} Gewichtetes Scoring mit Titel-Bonus und
+          Quellenpriorität.
+    \item \textbf{HTML-Reports:} Jinja2-basierte Reports mit Score-Badges und
+          XSS-Schutz.
+    \item \textbf{Modulare Architektur:} Klare Modultrennung, Konfiguration extern
+          über YAML.
+    \item \textbf{CLI-Interface:} Konfiguration, Verbose-Modus und Dry-Run per
+          Kommandozeile steuerbar.
+\end{itemize}
+
+\subsection{Lessons Learned}
+
+Einige Erkenntnisse aus der Entwicklung, die ich hier festhalten möchte:
+
+\begin{description}
+    \item[feedparser-Kompatibilität:] \texttt{feedparser} liefert je nach
+        Feed-Format (RSS~1.0, RSS~2.0, Atom) unterschiedliche Feldnamen für
+        denselben Inhalt. Beschreibungen stehen mal unter \texttt{summary}, mal
+        unter \texttt{description}, mal unter \texttt{content}. Ebenso variieren
+        die Datumsfelder. Das erfordert eine sorgfältige Normalisierung in der
+        Parse-Schicht -- was ich anfangs unterschätzt habe.
+
+    \item[Jinja2 Template-Design:] Article-Objekte (Dataclasses) vor der Übergabe
+        an Jinja2 in Dictionaries zu konvertieren hat sich als sinnvoll erwiesen.
+        Templates arbeiten besser mit Dictionary-Zugriff als mit
+        Attribut-Zugriff auf Objekte.
+
+    \item[YAML-Validierung:] Frühzeitige Validierung der Konfiguration erspart
+        kryptische Laufzeitfehler in späteren Schritten. Die Kombination aus
+        Defaults für optionale Felder und strikter Validierung für Pflichtfelder
+        hat sich bewährt.
+
+    \item[Word-Boundary-Matching:] Einfaches String-Matching führt bei kurzen
+        Keywords wie \glqq AI\grqq{} oder \glqq Go\grqq{} zu zahlreichen
+        Falsch-Positiven. Regex mit \texttt{\textbackslash b} löst das Problem,
+        ist aber auch denkbar langsamer als \texttt{str.find()} -- bei der
+        aktuellen Artikelanzahl spielt das allerdings keine Rolle.
+\end{description}

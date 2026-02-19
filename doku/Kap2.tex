@@ -1,0 +1,138 @@
+% =============================================================================
+% Kapitel 2: System-Architektur
+% =============================================================================
+
+\section{System-Architektur}
+
+\subsection{Überblick und Technologie-Stack}
+
+TechPulse ist in Python geschrieben und nutzt für jeden Verarbeitungsschritt eine Bibliothek. Die
+Tabelle~\ref{tab:techstack} zeigt den Tech-Stack im Überblick.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{@{}llp{7cm}@{}}
+\toprule
+\textbf{Komponente} & \textbf{Technologie} & \textbf{Beschreibung} \\
+\midrule
+Backend         & Python 3.11+     & Für Dataclasses, Type Hints und Threading \\
+Feed-Parsing    & feedparser 6.0+  & Universal-Parser für RSS/Atom-Feeds \\
+Konfiguration   & PyYAML 6.0+      & YAML-Parser mit Validierung \\
+Templates       & Jinja2 3.1+      & Template-Engine mit Auto-Escaping \\
+Report          & HTML/CSS         & Statische Reports mit eingebettetem CSS \\
+CLI             & argparse         & Standardbibliothek für Kommandozeilen-Argumente \\
+Logging         & logging          & Standardbibliothek mit File-/Console-Handler \\
+\bottomrule
+\end{tabular}
+\caption{Technologie-Stack von TechPulse}
+\label{tab:techstack}
+\end{table}
+
+\subsection{Systemkomponenten}
+
+Das Projekt besteht aus sieben Modulen. Jedes Modul hat genau eine Aufgabe. Dies ist folgend in der Tabelle~\ref{tab:modules}
+beschrieben:
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{@{}llp{6.5cm}@{}}
+\toprule
+\textbf{Modul} & \textbf{Zeilen} & \textbf{Aufgabe} \\
+\midrule
+\texttt{main.py}               & 259 & CLI-Orchestrierung: Argumente parsen,
+                                        Workflow steuern, Statistiken ausgeben \\
+\texttt{src/config\_loader.py} & 218 & YAML laden, Defaults setzen, validieren \\
+\texttt{src/feed\_parser.py}   & 291 & Feeds parallel abrufen und in
+                                        Article-Objekte parsen \\
+\texttt{src/filter.py}         & 214 & Keyword-Filterung mit
+                                        Word-Boundary-Matching \\
+\texttt{src/scorer.py}         & 250 & Gewichtete Relevanz-Scores berechnen \\
+\texttt{src/output\_generator.py} & 262 & HTML-Reports per Jinja2 generieren \\
+\texttt{src/logger.py}         &  90 & File- und Console-Logging konfigurieren \\
+\bottomrule
+\end{tabular}
+\caption{Modulübersicht von TechPulse}
+\label{tab:modules}
+\end{table}
+
+\subsection{Projektstruktur}
+
+Die Verzeichnisstruktur von TechPulse lässt sich so abbilden:
+
+\begin{lstlisting}[style=bash, caption={Projektstruktur}]
+techPulse/
+  config/
+    config.yaml           # Zentrale Konfiguration
+  src/
+    __init__.py
+    config_loader.py      # YAML laden + validieren
+    feed_parser.py        # Feeds abrufen + parsen
+    filter.py             # Keyword-Filterung
+    scorer.py             # Relevanz-Scoring
+    output_generator.py   # HTML-Report generieren
+    logger.py             # Logging-Setup
+  templates/
+    report_template.html  # Jinja2 HTML-Template
+  logs/
+    aggregator.log
+  output/
+    *.html                # Generierte Reports
+  main.py                 # CLI-Einstiegspunkt
+  requirements.txt
+  pyproject.toml
+\end{lstlisting}
+
+\subsection{SOLID-Prinzipien}
+
+Ich habe beim Entwurf darauf geachtet die SOLID-Prinzipien bewusst umzusetzen. Im Folgenden beschreibe ich, wie
+sich das konkret im Code zeigt.
+
+\subsubsection*{Single Responsibility Principle (SRP)}
+
+Jedes Modul hat genau eine Aufgabe: \texttt{feed\_parser.py} ruft Feeds ab, \texttt{filter.py} filtert,
+\texttt{scorer.py} berechnet Scores, \texttt{output\_generator.py} generiert Reports. Das gilt auch innerhalb der
+einzelnen Module. So ist beispielsweise die Funktion \texttt{\_build\_word\_boundary\_pattern()} in \texttt{src/filter.py:26--31}
+nur für die Regex-Pattern-Konstruktion zuständig.
+
+\subsubsection*{Open/Closed Principle (OCP)}
+
+Neue Feeds, Interessen und Keywords werden ausschließlich über die \texttt{config/config.yaml} hinzugefügt. Der Code
+muss dafür nicht angepasst werden. Auch die Gewichtung einzelner Interessen ist über den \texttt{weight}-Parameter
+steuerbar.
+
+\subsubsection*{Dependency Inversion Principle (DIP)}
+
+Die Module kommunizieren nicht direkt über die Konfigurationsquelle, sondern erhalten ihre Parameter als Dictionaries
+von der Funktion \texttt{config\_loader.py}.
+Kein Modul liest selbst die YAML-Konfiguration oder kennt das Dateiformat der Konfiguration. Streng genommen
+ist das noch kein vollständiges DIP, da die Module einander direkt importieren
+(z.,B.\ importiert \texttt{scorer.py} die Funktion \texttt{keyword\_matches} aus \texttt{filter.py}). Um das Prinzip von
+YAGNI\footnote{YAGNI-Prinzip: \url{https://de.wikipedia.org/wiki/YAGNI}} nicht zu brechen, wurde auf eine Umsetzung über
+Abstraktion verzichtet.
+
+Das Liskovsches Substitutionsprinzip verlangt, dass Subtypen ihren Basistyp ersetzen können, ohne das Programmverhalten
+zu ändern. TechPulse nutzt keine Vererbung. Das Interface-Segregation-Prinzip besagt, dass Clients nicht von Methoden
+abhängen sollen, die sie nicht nutzen. Das setzt formale Interfaces voraus, die aufgrund von YAGNI nicht implementiert
+worden sind.
+
+
+\subsection{Datenfluss}
+
+Die Verarbeitung läuft als lineare Pipeline. Jedes Modul nimmt die Daten des vorherigen Schritts entgegen, verarbeitet
+sie und reicht sie weiter. Ich habe mich bewusst für diesen Aufbau entschieden, weil es die Module voneinander
+entkoppelt. Jeder Schritt hat einen klar definierten Input und Output.
+
+Zwischen den Modulen dienen \texttt{Article}-Dataclasses als der einheitliche Datentyp. Dieser Typ ist angereichert mit
+Listen gefundener Keywords und berechneten Scores als Python-Tupel. Dadurch arbeiten alle Module mit derselben Datenstruktur,
+ohne voneinander zu wissen.
+
+Abbildung~\ref{fig:activity} zeigt den vollständigen Datenfluss als UML-Aktivitätsdiagramm mit Entscheidungsknoten für
+die Fehlerbehandlung und der Score-Filterung. Die Details der einzelnen Schritte beschreibt das
+Kapitel~\ref{sec:implementierung}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.7\textwidth,height=0.85\textheight,keepaspectratio]{aktivitaetendiagramm}
+    \caption{Aktivitätsdiagramm: Datenfluss der TechPulse-Pipeline}
+    \label{fig:activity}
+\end{figure}

@@ -1,0 +1,55 @@
+% =============================================================================
+% Kapitel 1: Einleitung
+% =============================================================================
+
+\section{Einleitung}
+
+\subsection{Der Name}
+
+Ich wollte einen kurzen Namen, der sofort vermittelt, worum es geht. \textit{Tech} für Technologie, \textit{Pulse} für
+den Puls, also am Puls der Tech-News bleiben. Der Name war nach kurzem Brainstorming klar und ist geblieben.
+
+\subsection{Das Projekt}
+
+Als Entwickler lese ich regelmäßig verschiedene Blogs. Das Problem dabei: relevante Artikel manuell zu finden kostet
+Zeit und viele interessante Themen gehen unter. Ich wollte ein Tool, das mir diese Arbeit abnimmt und für mich persönlich
+individualisierbar ist.
+
+Beruflich bin ich als Entwickler mit Fokus auf nicht-funktionale Anforderungen zuständig. Dazu gehört, über Änderungen in verwendeten
+Libraries und Frameworks auf dem Laufenden zu bleiben. Dies betrifft besonders Sicherheitslücken, Breaking Changes oder
+neue Möglichkeiten, die den Entwicklungsalltag vereinfachen. Gerade Coding Agents wie z.B.
+Claude Code\footnote{Claude Code: \url{https://docs.anthropic.com/en/docs/claude-code}} oder
+GitHub Copilot\footnote{GitHub Copilot:\url{https://github.com/features/copilot}} entwickelen sich rasant und eröffnen
+uns Entwickler neue Wege in der Modernisierung von Legacy-Code.
+
+Aktuell nutzen wir solche Tools beispielsweise, um veraltete
+Hibernate DetachedCriteria\footnote{Hibernate DetachedCriteria:\url{https://docs.jboss.org/hibernate/orm/6.6/javadocs/org/hibernate/criterion/DetachedCriteria.html}}
+auf JPA Criteria Queries\footnote{JPA Criteria API:\url{https://jakarta.ee/specifications/persistence/3.1/jakarta-persistence-spec-3.1\#a6925}}
+zu migrieren. Solche Entwicklungen frühzeitig mitzubekommen spart dem Team langfristig Aufwand und damit Ressourcen.
+TechPulse ist aus diesem Bedarf heraus entstanden. Anstatt täglich mehrere Quellen manuell durchsuchen zu müssen, trägt
+TechPulse automatisiert Tech-News zusammen.
+
+TechPulse ist ein RSS-News-Aggregator, der mehrere Feeds parallel abruft, nach konfigurierbaren Keywords filtert,
+ein persönliches Relevanz-Scoring berechnet und die Ergebnisse als HTML-Report aufbereitet. Konkret passiert dabei Folgendes:
+
+\begin{enumerate}
+    \item \textbf{Paralleler Feed-Abruf:} Mehrere RSS-\footnote{RSS 2.0 Spezifikation:
+    \url{https://www.rssboard.org/rss-specification}} und Atom-Feeds\footnote{Atom Syndication Format (RFC~4287):
+    \url{https://www.rfc-editor.org/rfc/rfc4287}} werden gleichzeitig über einen Thread-Pool abgerufen.
+    \item \textbf{Keyword-Filterung:} Artikel werden anhand konfigurierter Keywords gefiltert.
+    \item \textbf{Relevanz-Scoring:} Jeder Artikel bekommt einen Score basierend auf Anzahl und Position der Keyword-Matches
+    sowie der individuell konfigurierten Gewichtung des Interessengebiets.
+    \item \textbf{HTML-Report:} Die bewerteten Artikel werden in einem HTML-Report mit einer Score-Angabe, Gruppierungen und
+    Statistiken ausgegeben.
+    \item \textbf{CLI-Interface:} Über die Kommandozeile lässt sich der gesamte Ablauf steuern.
+\end{enumerate}
+
+Mir persönlich war dabei wichtig, auf saubere Modultrennung zu achten. Außerdem wollte ich die
+SOLID-Prinzipien\footnote{Robert C. Martin:\textit{Design Principles and Design Patterns}, 2000. Übersicht:\url{https://de.wikipedia.org/wiki/Prinzipien_objektorientierten_Designs}}
+umzusetzen. Jedes Modul hat genau eine Aufgabe. Die Konfiguration ist komplett über eine externe YAML-Datei
+individualisierbar. Anpassungen sind also ohne Code-Änderungen möglich.
+
+Technisch setzt TechPulse auf
+\texttt{feedparser}\footnote{feedparser -- Universal Feed Parser:\url{https://github.com/kurtmckee/feedparser}} für das Feed-Parsing,
+\texttt{Jinja2}\footnote{Jinja2 Template Engine:\url{https://jinja.palletsprojects.com/}} für die Report-Generierung und
+\texttt{PyYAML}\footnote{PyYAML -- YAML Parser for Python: \url{https://pyyaml.org/}} für das Management der Konfigurationen.

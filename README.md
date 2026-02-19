@@ -196,3 +196,7 @@ Logs werden in `logs/aggregator.log` geschrieben:
 2024-01-15 14:30:53 - techpulse - INFO - Feed Heise Developer: 25 Artikel gefunden
 ...
 ```
+
+---
+
+Diese README wurde mithilfe von KI generiert

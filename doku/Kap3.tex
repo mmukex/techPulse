@@ -1,0 +1,349 @@
+% =============================================================================
+% Kapitel 3: Implementierung
+% =============================================================================
+
+\section{Implementierung}
+\label{sec:implementierung}
+
+\subsection{Backend-Implementierung}
+
+\subsubsection{Konfigurationsmanagement}
+
+Welche Effekte die Konfigruation innerhalb der Anwendung hat, ist in
+\texttt{src/config\_loader.py} implementiert. Alle Parameter wie Feed-URLs, Keywords, Logging-Einstellungen werden zentral
+in \texttt{config/config.yaml}\footnote{YAML Spezifikation: \url{https://yaml.org/spec/}} beschrieben.
+
+Der Ladeprozess für die Konfiguration besteht aus drei Schritten:
+
+\begin{enumerate}
+    \item \textbf{YAML laden:} \texttt{\_load\_yaml\_file()} in
+          \texttt{src/config\_loader.py:52--71} liest die Datei mit
+          \texttt{yaml.safe\_load()}\footnote{\texttt{safe\_load()} statt
+          \texttt{yaml.load()} verhindert Code-Injection über YAML-Tags.} ein.
+    \item \textbf{Defaults setzen:} \texttt{\_apply\_defaults()} (Zeile~74--111) ergänzt fehlende optionale Abschnitte mit
+            Standardwerten. Durch
+          \texttt{setdefault()} bleiben vorhandene Werte erhalten.
+    \item \textbf{Validieren:} \texttt{validate\_config()} (Zeile~114--120) delegiert an spezialisierte
+            Validierungsfunktionen pro Abschnitt.
+\end{enumerate}
+
+Die Validierung prüft, ob alle Feeds die Attribute \texttt{name}, \texttt{url} und \texttt{category} enthalten
+(\texttt{\_validate\_feeds()}, Zeile~123--150) und ob die Interessen gültige Keywords bzw. eine positive Gewichtungen haben
+(\texttt{\_validate\_interests()}, Zeile~152--186). Bei Fehlern wirft der Loader ein \texttt{ConfigurationError} mit dem
+fehlerhaften Konfigurationsschlüssel:
+
+\begin{lstlisting}[caption={ConfigurationError mit Schlüssel-Referenz (config\_loader.py:15--20)}]
+class ConfigurationError(Exception):
+    def __init__(self, message: str,
+                 config_key: Optional[str] = None):
+        self.config_key = config_key
+        super().__init__(message)
+\end{lstlisting}
+
+\newpage
+Die Konfigurationsdatei gliedert sich in fünf Abschnitte:
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{@{}llp{7cm}@{}}
+\toprule
+\textbf{Abschnitt} & \textbf{Pflicht} & \textbf{Inhalt} \\
+\midrule
+\texttt{feeds}     & Ja  & RSS/Atom-Feeds mit Name, URL, Kategorie,
+                           Priorität \\
+\texttt{interests} & Ja  & Interessengebiete mit Keywords und Gewichtung \\
+\texttt{output}    & Nein & Report-Verzeichnis, Dateiname-Präfix,
+                            Max-Artikel, Min-Score \\
+\texttt{logging}   & Nein & Log-Level, Verzeichnis, Dateiname, Format \\
+\texttt{fetching}  & Nein & HTTP-Timeout, Max-Worker, User-Agent \\
+\bottomrule
+\end{tabular}
+\caption{Konfigurationsabschnitte der config.yaml}
+\label{tab:config_sections}
+\end{table}
+\subsubsection{Feed-Parser}
+
+Die Funktion \texttt{src/feed\_parser.py} ruft die Feeds ab und parst diese. Die zentrale Datenstruktur ist die
+\texttt{Article}-Dataclass\footnote{Python Dataclasses: \url{https://docs.python.org/3/library/dataclasses.html}}:
+
+\begin{lstlisting}[caption={Article-Dataclass (feed\_parser.py:23--51)}]
+@dataclass
+class Article:
+    title: str
+    link: str
+    description: str = ""
+    published: Optional[datetime] = None
+    feed_name: str = ""
+    category: str = ""
+    author: str = ""
+    source_priority: float = 1.0
+
+    def __post_init__(self):
+        self.title = self.title.strip() if self.title else ""
+        self.description = (
+            self.description.strip()
+            if self.description else ""
+        )
+\end{lstlisting}
+
+Die Whitespaces aus Titel und Beschreibung werden automatisch mit der Funktion \texttt{\_\_post\_init\_\_} bereinigt. Dies ist
+notwendig, da die Feed-Daten oft führende oder folgende Leerzeichen enthalten.
+
+Der parallele Abruf läuft über \texttt{fetch\_all\_feeds()} in Zeile~218--290. Die Funktion nutzt einen
+\texttt{ThreadPoolExecutor}\footnote{Python concurrent.futures:\url{https://docs.python.org/3/library/concurrent.futures.html}}
+mit einer konfigurierbarer Worker-Anzahl. Tests haben mit fünf Workern gute Ergebnisse erzielt:
+
+\begin{lstlisting}[caption={Paralleler Feed-Abruf (feed\_parser.py:243--259)}]
+with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    future_to_feed = {}
+    for feed_config in feed_configs:
+        future = executor.submit(
+            fetch_feed,
+            url=feed_config['url'],
+            name=feed_config['name'],
+            category=feed_config['category'],
+            priority=feed_config.get('priority', 1.0),
+            timeout=timeout,
+            user_agent=user_agent
+        )
+        future_to_feed[future] = feed_config['name']
+\end{lstlisting}
+
+\texttt{as\_completed()} liefert die Futures in der Reihenfolge wie sie terminiert wurden. Damit werden schnelle Feeds
+also zuerst verarbeitet. Die Artikel werden nach dem neusten Veröffentlichungsdatum sortiert, wobei \texttt{datetime.min}
+als ein Fallback für die Artikel ohne Datum dient.
+
+Innerhalb von \texttt{fetch\_feed()} (Zeile~54--111) mappt \texttt{\_parse\_feed\_entry()} (Zeile~114--149)
+jeden Feed-Eintrag in ein \texttt{Article}-Objekt. Dabei werden verschiedene Feed-Formate normalisiert:
+\texttt{\_extract\_description()} prüft die Felder \texttt{summary},
+\texttt{description} und \texttt{content},da RSS~2.0, Atom und andere Formate unterschiedliche Feldnamen verwenden.
+
+\subsubsection{Keyword-Filter}
+
+\texttt{src/filter.py} filtert Artikel anhand der konfigurierten Keywords. Der
+Kern ist ein Regex-basiertes Word-Boundary-Matching\footnote{Python - Regular Expressions: \url{https://docs.python.org/3/library/re.html}}
+über die Funktion \texttt{\_build\_word\_boundary\_pattern()} (Zeile~26--31):
+
+\begin{lstlisting}[caption={Word-Boundary-Pattern (filter.py:23--31)}]
+TITLE_MATCH_WEIGHT = 2
+
+def _build_word_boundary_pattern(keyword: str) -> str:
+    return r'\b' + re.escape(keyword.lower()) + r'\b'
+\end{lstlisting}
+
+Die Word-Boundaries (\texttt{\textbackslash b}) stellen sicher, dass nur ganze
+Wörter matchen -- \glqq AI\grqq{} trifft also nicht in \glqq MAIL\grqq{} oder
+\glqq FAIR\grqq{}. \texttt{re.escape()} schützt vor Sonderzeichen in Keywords.
+
+\texttt{keyword\_matches()} (Zeile~34--61) nutzt ein \texttt{Set} zur Duplikatprüfung, damit jedes Keyword pro Text maximal
+einmal zählt:
+
+\begin{lstlisting}[caption={Keyword-Matching mit Duplikatprüfung (filter.py:48--61)}]
+text_lower = text.lower()
+found_keywords: List[str] = []
+seen: Set[str] = set()
+
+for keyword in keywords:
+    if keyword in seen:
+        continue
+    pattern = _build_word_boundary_pattern(keyword)
+    if re.search(pattern, text_lower):
+        found_keywords.append(keyword)
+        seen.add(keyword)
+return found_keywords
+\end{lstlisting}
+
+Die Funktion \texttt{filter\_articles()} (Zeile~93--134) iteriert über alle Artikel und findet für jeden das am besten passende
+Interesse. Die Zuordnung übernimmt die Funktion \texttt{\_find\_best\_interest\_match()} (Zeile~137--174), die die Titel- und
+Beschreibungs-Matches getrennt bewertet. Die Titel-Matches werden mit dem Faktor \texttt{TITLE\_MATCH\_WEIGHT = 2} gewichtet,
+da ein Keyword im Titel der Erfahrung nach ein stärkerer Relevanzindikator ist.
+
+Für Statistiken bietet \texttt{get\_keyword\_statistics()} (Zeile~204--213) eine Häufigkeitsanalyse über \texttt{collections.Counter}:
+
+\begin{lstlisting}[caption={Keyword-Statistik mit Counter (filter.py:208--213)}]
+keyword_counts: Counter[str] = Counter()
+for _, keywords, _ in filtered_articles:
+    keyword_counts.update(keywords)
+return dict(keyword_counts.most_common())
+\end{lstlisting}
+
+\subsubsection{Scoring-System}
+
+Für jeden gefilterten Artikel berechnet die Funktion \texttt{src/scorer.py} einen Relevanz-Score. Vier Faktoren fließen
+dort ein:
+
+\begin{itemize}
+    \item Anzahl der Keyword-Matches in der Beschreibung
+    \item Anzahl der Keyword-Matches im Titel (höher gewichtet)
+    \item Gewichtung des Interessengebiets (\texttt{weight})
+    \item Quellenpriorität des Feeds (\texttt{source\_priority})
+\end{itemize}
+
+Die Formel dahinter:
+
+\begin{equation}
+\text{Score} = \left(\text{desc\_matches} \times w + \text{title\_matches}
+\times 1{,}5 \times w\right) \times \text{source\_priority}
+\label{eq:scoring}
+\end{equation}
+
+wobei $w$ die konfigurierte Gewichtung des Interesses ist. Die zentrale
+Implementierung ist in \texttt{\_compute\_score\_breakdown()}
+(\texttt{src/scorer.py:36--64}) implementiert:
+
+\begin{lstlisting}[caption={Zentrale Scoring-Logik (scorer.py:36--64)}]
+TITLE_MULTIPLIER = 1.5
+BASE_SCORE_PER_MATCH = 1.0
+
+def _compute_score_breakdown(
+    article: Article,
+    keywords: List[str],
+    weight: float
+) -> Dict[str, Any]:
+    title_matches = keyword_matches(article.title, keywords)
+    description_matches = keyword_matches(
+        article.description, keywords
+    )
+    title_score = (len(title_matches) * TITLE_MULTIPLIER
+                   * weight * BASE_SCORE_PER_MATCH)
+    description_score = (len(description_matches)
+                         * weight * BASE_SCORE_PER_MATCH)
+    base_score = title_score + description_score
+    total_score = base_score * article.source_priority
+    return { ... }
+\end{lstlisting}
+
+Diese Funktion wird von den Funktionen \texttt{calculate\_score()} (Zeile~67--100) und
+\texttt{calculate\_detailed\_score()} (Zeile~103--120) genutzt. Dadurch läuft das Keyword-Matching pro Aufruf nur einmal
+statt dreimal (DRY-Prinzip).
+
+Die Scores werden in drei Level eingeteilt:
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{@{}lcl@{}}
+\toprule
+\textbf{Level} & \textbf{Score-Bereich} & \textbf{Farbe im Report} \\
+\midrule
+Low    & $< 3{,}0$        & Gelb \\
+Medium & $3{,}0$ -- $5{,}9$ & Blau \\
+High   & $\geq 6{,}0$     & Grün \\
+\bottomrule
+\end{tabular}
+\caption{Score-Level und ihre Schwellwerte (scorer.py:29--30)}
+\label{tab:scorelevels}
+\end{table}
+
+Die Schwellwerte sind als Konstanten definiert:
+
+\begin{itemize}
+    \item \texttt{SCORE\_LEVEL\_LOW\_THRESHOLD = 3.0}
+    \item \texttt{SCORE\_LEVEL\_HIGH\_THRESHOLD = 6.0}
+\end{itemize}
+
+\noindent Das \texttt{output\_generator.py}-Modul importiert diese Konstanten direkt.
+
+\texttt{score\_all\_articles()} (Zeile~123--171) berechnet den Score über alle Interessen: ein Artikel mit
+\glqq AI\grqq{}- und \glqq Security\grqq{}-Keywords erhält Punkte aus beiden Gebieten. Die Ergebnisse werden anschließend absteigend
+sortiert.
+
+\textbf{Beispielrechnung:} Ein Artikel mit \glqq AI\grqq{} im Titel, Interesse\glqq Künstliche Intelligenz\grqq{} (weight = 2.0), source\_priority = 1.2:
+
+\[
+\text{Score} = (0 \times 2{,}0 + 1 \times 1{,}5 \times 2{,}0) \times 1{,}2
+= 3{,}0 \times 1{,}2 = 3{,}6 \quad (\text{Medium})
+\]
+
+\subsubsection{Report-Generator}
+
+Die Funktion \texttt{src/output\_generator.py} generiert einen HTML-Report. Die Datenaufbereitung und das Rendering sind
+dabei getrennt.
+
+\texttt{prepare\_template\_data()} (Zeile~25--69) durchläuft drei Schritte:
+
+\begin{enumerate}
+    \item \textbf{Konvertierung:} \texttt{\_article\_to\_dict()} (Zeile~72--90)
+          kovertiert Article-Objekte in Dictionaries, ergänzt um den \texttt{score},
+          die \texttt{interest} und das \texttt{score\_level}.
+    \item \textbf{Gruppierung:} \texttt{\_group\_articles\_by()} (Zeile~103--115)
+          gruppiert Artikel nach beliebigen Schlüsseln über
+          \texttt{collections.defaultdict}.
+    \item \textbf{Statistiken:} \texttt{\_calculate\_statistics()}
+          (Zeile~118--142) berechnet Durchschnitts-Score, Min/Max und Anzahl
+          der Kategorien.
+\end{enumerate}
+
+\begin{lstlisting}[caption={Generische Artikel-Gruppierung (output\_generator.py:103--115)}]
+def _group_articles_by(
+    articles: List[Dict[str, Any]],
+    key: str,
+    default: str = "Sonstige"
+) -> Dict[str, List[Dict]]:
+    groups: Dict[str, List[Dict]] = defaultdict(list)
+    for article in articles:
+        group_name = article.get(key, default)
+        groups[group_name].append(article)
+    return dict(groups)
+\end{lstlisting}
+
+\texttt{generate\_html\_report()} (Zeile~145--190) konfiguriert die Jinja2-Environment und registriert Custom-Filter für
+die Datums- und Score-Formatierung.
+
+Der Report wird in \texttt{save\_report()} (Zeile~208--243) mit Zeitstempel im Dateinamen gespeichert.
+
+Das HTML-Template liegt in \texttt{templates/report\_template.html} und wurde mit KI-Unterstützung erstellt
+(ebenso wie die \texttt{README.md}). Das Template enthält eingebettetes CSS für ein Standalone-Dokument.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth,height=0.8\textheight,keepaspectratio]{html_report}
+    \caption{Beispiel eines generierten HTML-Reports}
+    \label{fig:report_screenshot}
+\end{figure}
+
+\subsection{Logging}
+
+\texttt{src/logger.py} richtet einen zentralen Logger namens \texttt{techpulse} ein, den alle Module über
+\texttt{logging.getLogger("techpulse")}\footnote{Python logging: \url{https://docs.python.org/3/library/logging.html}} referenzieren.
+
+\texttt{setup\_logger()} (Zeile~11--57) konfiguriert zwei Handler:
+
+\begin{itemize}
+    \item \textbf{FileHandler:} Schreibt Log-Meldungen in eine Datei
+          (Standard: \texttt{logs/aggregator.log}), UTF-8-kodiert.
+    \item \textbf{StreamHandler:} Gibt Log-Meldungen optional auf der Konsole
+          aus (steuerbar über \texttt{logging.console} in der Konfiguration).
+\end{itemize}
+
+Um Loghandler-Duplikate bei mehrfachem Aufruf zu vermeiden, werden bestehende LohHandler vorher entfernt
+(\texttt{logger.handlers.clear()}, Zeile~41).
+
+\subsection{CLI-Interface}
+
+Das Kommandozeilen-Interface ist in \texttt{parse\_arguments()} in
+\texttt{main.py:27--65} mit der Bibliothek
+\texttt{argparse}\footnote{Python argparse:
+\url{https://docs.python.org/3/library/argparse.html}} implementiert:
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Argument} & \textbf{Kurzform} & \textbf{Beschreibung} \\
+\midrule
+\texttt{-{}-config}   & \texttt{-c} & Pfad zur YAML-Konfigurationsdatei \\
+\texttt{-{}-verbose}  & \texttt{-v} & Aktiviert DEBUG-Level Logging \\
+\texttt{-{}-output}   & \texttt{-o} & Überschreibt das Output-Verzeichnis \\
+\texttt{-{}-dry-run}  &             & Alle Schritte ohne Speichern ausführen \\
+\bottomrule
+\end{tabular}
+\caption{CLI-Argumente von TechPulse}
+\label{tab:cli_args}
+\end{table}
+
+Die \texttt{main()} in \texttt{main.py:103--254} orchestriert den Workflow in fünf nummerierten Schritten mit Fortschrittsanzeige.
+CLI-Flags haben Vorrang vor der YAML-Konfiguration. Bei dem Argument \texttt{-{}-verbose} wird das Log-Level unabhängig
+von der Config auf \texttt{DEBUG} gesetzt (Zeile~130--131).
+
+Am Ende gibt \texttt{print\_statistics()} (Zeile~85--100) eine Zusammenfassung  aus. Die drei Artikel mit dem höchsten Score
+werden als Vorschau angezeigt (Zeile~235--246).

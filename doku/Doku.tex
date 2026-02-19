@@ -1,0 +1,180 @@
+% =============================================================================
+% TechPulse - Schriftliche Ausarbeitung
+% FH Südwestfalen | Modul: Skriptsprachen
+% =============================================================================
+\documentclass[a4paper,12pt]{article}
+
+% --- Encoding & Sprache ---
+\usepackage[ngerman]{babel}
+
+% --- Layout ---
+\usepackage[
+    left=2.5cm,
+    right=2.5cm,
+    top=2.5cm,
+    bottom=2.5cm
+]{geometry}
+\usepackage{parskip}
+\usepackage{fancyhdr}
+\setlength{\headheight}{14.5pt}
+\usepackage{tocloft}
+
+% --- Grafiken & Links ---
+\usepackage{graphicx}
+\usepackage[
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue,
+    citecolor=black
+]{hyperref}
+
+% --- Mathe ---
+\usepackage{amsmath}
+
+% --- Code-Listings ---
+\usepackage{xcolor}
+\usepackage{listings}
+
+\definecolor{codegreen}{rgb}{0,0.5,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.95}
+
+\lstset{
+    language=Python,
+    backgroundcolor=\color{backcolour},
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{codegreen},
+    commentstyle=\color{codegray}\itshape,
+    numberstyle=\tiny\color{codegray},
+    numbers=left,
+    numbersep=8pt,
+    breaklines=true,
+    breakatwhitespace=false,
+    showstringspaces=false,
+    frame=single,
+    framerule=0.5pt,
+    rulecolor=\color{codegray},
+    tabsize=4,
+    captionpos=b,
+    xleftmargin=1.5em,
+    framexleftmargin=1.5em,
+    aboveskip=1em,
+    belowskip=1em,
+    literate={ä}{{\"a}}1 {ö}{{\"o}}1 {ü}{{\"u}}1
+             {Ä}{{\"A}}1 {Ö}{{\"O}}1 {Ü}{{\"U}}1
+             {ß}{{\ss}}1
+}
+
+% Zusätzlicher Stil für YAML-Listings
+\lstdefinestyle{yaml}{
+    language={},
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{codegreen},
+    commentstyle=\color{codegray}\itshape,
+    morecomment=[l]{\#},
+    frame=single,
+    backgroundcolor=\color{backcolour},
+    numbers=left,
+    numberstyle=\tiny\color{codegray},
+    numbersep=8pt,
+    xleftmargin=1.5em,
+    framexleftmargin=1.5em,
+}
+
+% Stil für Bash/Terminal-Listings
+\lstdefinestyle{bash}{
+    language=bash,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{codegreen},
+    commentstyle=\color{codegray}\itshape,
+    frame=single,
+    backgroundcolor=\color{backcolour},
+    numbers=none,
+    xleftmargin=1.5em,
+    framexleftmargin=1.5em,
+}
+
+% --- Makros ---
+\newcommand{\name}{mmukex}
+\newcommand{\datum}{\today}
+
+% --- Kopf-/Fußzeilen ---
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small TechPulse -- Modularbeit Skriptsprachen}
+\fancyhead[R]{\small mmukex}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% --- Tabellen ---
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+
+% =============================================================================
+% Titelseite
+% =============================================================================
+\begin{document}
+\pagenumbering{Alph}
+
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+
+    {\Huge\bfseries TechPulse\par}
+    \vspace{0.5cm}
+    {\Large RSS Tech-News-Aggregator\par}
+    \vspace{0.3cm}
+    {\large mit Keyword-Filterung und Scoring-System\par}
+
+    \vspace{2cm}
+
+    {\large Schriftliche Ausarbeitung\par}
+    \vspace{0.3cm}
+    {\large im Modul \textbf{Skriptsprachen}\par}
+
+    \vspace{2cm}
+
+    \begin{tabular}{rl}
+        \textbf{Autor:}          & Max Meier \\
+        \textbf{Matrikelnummer:} & 30394407 \\
+        \textbf{Hochschule:}     & FH Südwestfalen \\
+        \textbf{Datum:}          & \today \\
+    \end{tabular}
+
+    \vfill
+\end{titlepage}
+
+% =============================================================================
+% Inhaltsverzeichnis
+% =============================================================================
+\clearpage
+\pagenumbering{arabic}
+\tableofcontents
+\newpage
+
+% =============================================================================
+% Kapitel
+% =============================================================================
+\input{Kap1}
+\newpage
+\input{Kap2}
+\newpage
+\input{Kap3}
+\newpage
+\input{Kap4}
+\newpage
+\input{Kap5}
+
+% =============================================================================
+% Anhang
+% =============================================================================
+\newpage
+\input{Anhang}
+
+\end{document}

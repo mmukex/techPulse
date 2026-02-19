@@ -1,0 +1,152 @@
+% =============================================================================
+% Kapitel 4: Deployment & Betrieb
+% =============================================================================
+
+\section{Deployment und Betrieb}
+
+\subsection{Kompatibilität}
+
+TechPulse benötigt \textbf{Python 3.11} oder höher, da es Dataclasses, Type Hints mit \texttt{Optional[T]} und dem
+Walrus-Operator (\texttt{:=}) verwendet.
+
+Die Anwendung läuft unter Linux, macOS und Windows. Alle externen Abhängigkeiten stehen in der \texttt{requirements.txt}:
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{@{}llp{6.5cm}@{}}
+\toprule
+\textbf{Bibliothek} & \textbf{Version} & \textbf{Zweck} \\
+\midrule
+feedparser  & $\geq$ 6.0.10 & RSS/Atom-Feed-Parser \\
+pyyaml      & $\geq$ 6.0    & YAML-Parser für die Konfiguration \\
+jinja2      & $\geq$ 3.1.2  & Template-Engine für HTML-Reports \\
+\bottomrule
+\end{tabular}
+\caption{Externe Abhängigkeiten von TechPulse}
+\label{tab:dependencies}
+\end{table}
+
+\subsection{Konfiguration}
+
+Die gesamte Konfiguration ist in \texttt{config/config.yaml} abgebildet. Im Folgenden die einzelnen Abschnitte:
+
+\subsubsection*{Feeds}
+
+Der \texttt{feeds}-Abschnitt definiert die Quellen. Pro Feed werden vier Felder erwartet:
+
+\begin{lstlisting}[style=yaml, caption={Feed-Konfiguration (Auszug aus config.yaml)}]
+feeds:
+  - name: "Heise Developer"
+    url: "https://www.heise.de/developer/rss/news-atom.xml"
+    category: "Tech News DE"
+    priority: 1.2
+\end{lstlisting}
+
+\begin{itemize}
+    \item \texttt{name}: Anzeigename im Report und in Log-Meldungen
+    \item \texttt{url}: Feed-URL (muss mit \texttt{http://} oder
+          \texttt{https://} beginnen)
+    \item \texttt{category}: Gruppierung im Report
+    \item \texttt{priority}: Quellenpriorität für das Scoring (1.0 = normal,
+          $>$1 = höher)
+\end{itemize}
+
+\subsubsection*{Interessen}
+
+Der \texttt{interests}-Abschnitt definiert Themengebiete mit den Keywords und der Gewichtung:
+
+\begin{lstlisting}[style=yaml, caption={Interessen-Konfiguration (Auszug aus config.yaml)}]
+interests:
+  - name: "Kuenstliche Intelligenz"
+    keywords:
+      - "AI"
+      - "Machine Learning"
+      - "GPT"
+      - "LLM"
+    weight: 2.0
+\end{lstlisting}
+
+Keywords werden case-insensitiv mit Word-Boundary-Matching geprüft. Das \texttt{weight}-Feld beeinflusst den
+jeweiligen Scoring-Multiplikator.
+
+\subsubsection*{Output}
+
+\begin{lstlisting}[style=yaml, caption={Output-Konfiguration}]
+output:
+  directory: "output"
+  filename_prefix: "techpulse_report"
+  max_articles: 50
+  min_score: 0.5
+\end{lstlisting}
+
+\begin{itemize}
+    \item \texttt{directory}: Zielverzeichnis (wird automatisch erstellt)
+    \item \texttt{filename\_prefix}: Präfix + Zeitstempel ergibt den Dateinamen
+          (z.\,B. \texttt{techpulse\_report\_\allowbreak 20260214\_103015.html})
+    \item \texttt{max\_articles}: Maximale Artikelanzahl (0 = unbegrenzt)
+    \item \texttt{min\_score}: Artikel unter diesem Score werden ausgeschlossen
+\end{itemize}
+
+\subsubsection*{Logging und Fetching}
+
+Beide der folgende Abschnitte sind optional. Fehlende Werte werden durch Defaults ersetzt (\texttt{\_apply\_defaults()},
+\texttt{src/config\_loader.py:75--112}).
+
+\begin{lstlisting}[style=yaml, caption={Logging- und Fetching-Konfiguration}]
+logging:
+  level: "INFO"        # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  directory: "logs"
+  filename: "aggregator.log"
+  console: true
+
+fetching:
+  timeout: 10          # HTTP-Timeout pro Feed in Sekunden
+  max_workers: 5       # Parallele Threads fuer Feed-Abruf
+  user_agent: "TechPulse RSS Aggregator/1.0"
+\end{lstlisting}
+
+\subsection{Installation und Ausführung}
+
+\subsubsection*{Schritt 1: Virtuelle Umgebung einrichten}
+
+\begin{lstlisting}[style=bash, caption={Virtuelle Umgebung erstellen und aktivieren}]
+$ python3 -m venv .venv
+$ source .venv/bin/activate      # Linux/macOS
+$ .venv\Scripts\activate         # Windows
+\end{lstlisting}
+
+\subsubsection*{Schritt 2: Abhängigkeiten installieren}
+
+\begin{lstlisting}[style=bash, caption={Abhängigkeiten installieren}]
+$ pip install -r requirements.txt
+\end{lstlisting}
+
+\subsubsection*{Schritt 3: Ausführen}
+
+\begin{lstlisting}[style=bash, caption={TechPulse ausführen}]
+# Standard-Konfiguration verwenden:
+$ python main.py
+
+# Eigene Konfiguration und verbose Ausgabe:
+$ python main.py --config my_config.yaml --verbose
+
+# Testlauf ohne Report-Speicherung:
+$ python main.py --dry-run
+
+# Output-Verzeichnis ueberschreiben:
+$ python main.py --output /tmp/reports
+\end{lstlisting}
+
+Nach der Ausführung des Skripts, gibt TechPulse eine Zusammenfassung auf der Konsole aus und gibt den Pfad zum generierten
+HTML-Report aus.
+
+\subsection{Produktiver Einsatz}
+
+Ich lasse TechPulse auf einem Raspberry Pi laufen. Ein Cron-Job startet das Skript täglich morgens und legt den Report in
+einem Verzeichnis ab, das ich über den Browser abrufen kann.
+
+\begin{lstlisting}[style=bash, caption={Cron-Job für tägliche Ausführung}]
+# Crontab-Eintrag: taeglich um 7:00 Uhr
+0 7 * * * cd /home/pi/techPulse && \
+  .venv/bin/python main.py >> logs/cron.log 2>&1
+\end{lstlisting}
