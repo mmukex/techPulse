@@ -37,11 +37,10 @@ Einige Erkenntnisse aus der Entwicklung, die ich hier festhalten möchte:
 
 \begin{description}
     \item[feedparser-Kompatibilität:] \texttt{feedparser} liefert je nach
-        Feed-Format (RSS~1.0, RSS~2.0, Atom) unterschiedliche Feldnamen für
-        denselben Inhalt. Beschreibungen stehen mal unter \texttt{summary}, mal
-        unter \texttt{description}, mal unter \texttt{content}. Ebenso variieren
-        die Datumsfelder. Das erfordert eine sorgfältige Normalisierung in der
-        Parse-Schicht -- was ich anfangs unterschätzt habe.
+        Feed-Format unterschiedliche Feldnamen für denselben Inhalt. Beschreibungen
+        stehen mal unter \texttt{summary}, mal unter \texttt{description} oder auch
+        mal unter \texttt{content}. Ebenso variieren die Datumsfelder. Dies erfordert
+        eine sorgfältige Normalisierung in der Parse-Schicht, was ich anfangs unterschätzt habe.
 
     \item[Jinja2 Template-Design:] Article-Objekte (Dataclasses) vor der Übergabe
         an Jinja2 in Dictionaries zu konvertieren hat sich als sinnvoll erwiesen.
@@ -51,11 +50,9 @@ Einige Erkenntnisse aus der Entwicklung, die ich hier festhalten möchte:
     \item[YAML-Validierung:] Frühzeitige Validierung der Konfiguration erspart
         kryptische Laufzeitfehler in späteren Schritten. Die Kombination aus
         Defaults für optionale Felder und strikter Validierung für Pflichtfelder
-        hat sich bewährt.
+        hat sich für mich bewährt.
 
     \item[Word-Boundary-Matching:] Einfaches String-Matching führt bei kurzen
         Keywords wie \glqq AI\grqq{} oder \glqq Go\grqq{} zu zahlreichen
-        Falsch-Positiven. Regex mit \texttt{\textbackslash b} löst das Problem,
-        ist aber auch denkbar langsamer als \texttt{str.find()} -- bei der
-        aktuellen Artikelanzahl spielt das allerdings keine Rolle.
+        False-Positives. Ein Regex mit \texttt{\textbackslash b} löst aber das Problem.
 \end{description}

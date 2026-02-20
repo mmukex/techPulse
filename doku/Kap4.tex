@@ -51,24 +51,6 @@ feeds:
           $>$1 = höher)
 \end{itemize}
 
-\subsubsection*{Interessen}
-
-Der \texttt{interests}-Abschnitt definiert Themengebiete mit den Keywords und der Gewichtung:
-
-\begin{lstlisting}[style=yaml, caption={Interessen-Konfiguration (Auszug aus config.yaml)}]
-interests:
-  - name: "Kuenstliche Intelligenz"
-    keywords:
-      - "AI"
-      - "Machine Learning"
-      - "GPT"
-      - "LLM"
-    weight: 2.0
-\end{lstlisting}
-
-Keywords werden case-insensitiv mit Word-Boundary-Matching geprüft. Das \texttt{weight}-Feld beeinflusst den
-jeweiligen Scoring-Multiplikator.
-
 \subsubsection*{Output}
 
 \begin{lstlisting}[style=yaml, caption={Output-Konfiguration}]
@@ -87,6 +69,24 @@ output:
     \item \texttt{min\_score}: Artikel unter diesem Score werden ausgeschlossen
 \end{itemize}
 
+\subsubsection*{Interessen}
+
+Der \texttt{interests}-Abschnitt definiert Themengebiete mit den Keywords und der Gewichtung:
+
+\begin{lstlisting}[style=yaml, caption={Interessen-Konfiguration (Auszug aus config.yaml)}]
+interests:
+  - name: "Kuenstliche Intelligenz"
+    keywords:
+      - "AI"
+      - "Machine Learning"
+      - "GPT"
+      - "LLM"
+    weight: 2.0
+\end{lstlisting}
+
+Keywords werden case-insensitiv mit Word-Boundary-Matching geprüft. Das \texttt{weight}-Feld beeinflusst den
+jeweiligen Scoring-Multiplikator.
+
 \subsubsection*{Logging und Fetching}
 
 Beide der folgende Abschnitte sind optional. Fehlende Werte werden durch Defaults ersetzt (\texttt{\_apply\_defaults()},
@@ -104,6 +104,8 @@ fetching:
   max_workers: 5       # Parallele Threads fuer Feed-Abruf
   user_agent: "TechPulse RSS Aggregator/1.0"
 \end{lstlisting}
+
+\newpage
 
 \subsection{Installation und Ausführung}
 

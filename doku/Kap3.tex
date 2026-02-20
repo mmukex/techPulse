@@ -7,6 +7,10 @@
 
 \subsection{Backend-Implementierung}
 
+Die in Kapitel~\ref{sec:architektur} beschriebene Modulstruktur wird im Folgenden auf Implementierungsebene betrachtet.
+Die einzelnen Abschnitte sollen die zentralen Designentscheidungen, verwendeten Algorithmen und relevante Codeausschnitte
+der fünf Kernmodule erläutern.
+
 \subsubsection{Konfigurationsmanagement}
 
 Welche Effekte die Konfigruation innerhalb der Anwendung hat, ist in
@@ -137,6 +141,8 @@ Wörter matchen -- \glqq AI\grqq{} trifft also nicht in \glqq MAIL\grqq{} oder
 
 \texttt{keyword\_matches()} (Zeile~34--61) nutzt ein \texttt{Set} zur Duplikatprüfung, damit jedes Keyword pro Text maximal
 einmal zählt:
+
+\newpage
 
 \begin{lstlisting}[caption={Keyword-Matching mit Duplikatprüfung (filter.py:48--61)}]
 text_lower = text.lower()
